@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sales Performance Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f2f1;
+      --header: #252423;
+      --accent: #f2c811;
+      --card: #ffffff;
+      --text: #252423;
+      --muted: #605e5c;
+      --stroke: #edebe9;
+      --slicer: #faf9f8;
+      --bar: #118dff;
+      --bar-2: #002050;
+      --green: #107c10;
+      --orange: #ca5010;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-width: 1100px;
+    }
+    header {
+      background: var(--header);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      gap: 16px;
+    }
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+    .badge {
+      background: var(--accent);
+      color: #111;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      letter-spacing: 0.4px;
+    }
+    .subtitle { color: #c8c6c4; font-size: 12px; }
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px;
+      padding: 12px;
+      min-height: calc(100% - 52px);
+    }
+    .slicers {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .slicer {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      padding: 10px 10px 8px;
+    }
+    .slicer h2 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .slicer h2 button {
+      background: none;
+      border: 0;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 0;
+    }
+    .slicer label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      padding: 3px 2px;
+      cursor: pointer;
+    }
+    .slicer input { accent-color: var(--accent); }
+    .main { display: flex; flex-direction: column; gap: 12px; }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-left: 4px solid var(--accent);
+      padding: 14px 16px 12px;
+    }
+    .kpi .label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .kpi .value {
+      font-size: 26px;
+      font-weight: 600;
+      margin-top: 4px;
+      line-height: 1.2;
+    }
+    .kpi .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .charts {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      grid-template-rows: 280px 300px;
+      gap: 12px;
+    }
+    .visual {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      padding: 12px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .visual h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .visual .caption {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .visual canvas { flex: 1; min-height: 0; }
+    footer {
+      padding: 4px 20px 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Sales Performance Dashboard</h1>
+      <div class="subtitle">Revenue, profit, orders and customers · 2024–2025</div>
+    </div>
+    <span class="badge">POWER BI STYLE</span>
+  </header>
+  <div class="layout">
+    <aside class="slicers">
+      <section class="slicer">
+        <h2>Year <button type="button" data-clear="year">Clear</button></h2>
+        <div id="slicer-year"></div>
+      </section>
+      <section class="slicer">
+        <h2>Region <button type="button" data-clear="region">Clear</button></h2>
+        <div id="slicer-region"></div>
+      </section>
+      <section class="slicer">
+        <h2>Category <button type="button" data-clear="category">Clear</button></h2>
+        <div id="slicer-category"></div>
+      </section>
+    </aside>
+    <div class="main">
+      <section class="kpis">
+        <article class="kpi">
+          <div class="label">Revenue</div>
+          <div class="value" id="kpi-revenue">—</div>
+          <div class="hint" id="kpi-revenue-hint"></div>
+        </article>
+        <article class="kpi">
+          <div class="label">Profit</div>
+          <div class="value" id="kpi-profit">—</div>
+          <div class="hint" id="kpi-profit-hint"></div>
+        </article>
+        <article class="kpi">
+          <div class="label">Orders</div>
+          <div class="value" id="kpi-orders">—</div>
+          <div class="hint" id="kpi-orders-hint"></div>
+        </article>
+        <article class="kpi">
+          <div class="label">Customers</div>
+          <div class="value" id="kpi-customers">—</div>
+          <div class="hint" id="kpi-customers-hint"></div>
+        </article>
+      </section>
+      <section class="charts">
+        <article class="visual">
+          <h3>Monthly sales trend</h3>
+          <canvas id="chart-trend"></canvas>
+          <div class="caption">Source: fact_orders · sales_amount by order month · returns excluded</div>
+        </article>
+        <article class="visual">
+          <h3>Revenue by category</h3>
+          <canvas id="chart-category"></canvas>
+          <div class="caption">Source: fact_orders joined to dim_products.category</div>
+        </article>
+        <article class="visual">
+          <h3>Profit by region</h3>
+          <canvas id="chart-region"></canvas>
+          <div class="caption">Source: fact_orders joined to dim_regions.region · profit (INR)</div>
+        </article>
+        <article class="visual">
+          <h3>Top 10 products by revenue</h3>
+          <canvas id="chart-products"></canvas>
+          <div class="caption">Source: fact_orders joined to dim_products.product_name</div>
+        </article>
+      </section>
+    </div>
+  </div>
+  <footer id="footer"></footer>
+  <script src="data.js"></script>
+  <script>
+    const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const D = window.DASHBOARD_DATA;
+    const filters = { year: new Set(), region: new Set(), category: new Set() };
+
+    function inr(n) {
+      const abs = Math.abs(n);
+      const sign = n < 0 ? "-" : "";
+      if (abs >= 1e7) return sign + "₹" + (abs / 1e7).toFixed(2) + " Cr";
+      if (abs >= 1e5) return sign + "₹" + (abs / 1e5).toFixed(2) + " L";
+      return sign + "₹" + Math.round(abs).toLocaleString("en-IN");
+    }
+
+    function countFmt(n) {
+      return n.toLocaleString("en-IN");
+    }
+
+    function buildSlicer(elId, values, key) {
+      const root = document.getElementById(elId);
+      root.innerHTML = values.map((v, i) => (
+        `<label><input type="checkbox" data-key="${key}" value="${i}" checked> ${v}</label>`
+      )).join("");
+      values.forEach((_, i) => filters[key].add(i));
+    }
+
+    const years = [...new Set(D.rows.map((r) => r[0]))].sort();
+    buildSlicer("slicer-year", years.map(String), "year");
+    buildSlicer("slicer-region", D.regions, "region");
+    buildSlicer("slicer-category", D.categories, "category");
+
+    document.querySelectorAll(".slicer input").forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.dataset.key;
+        const val = key === "year" ? Number(input.value) : Number(input.value);
+        if (input.checked) filters[key].add(val);
+        else filters[key].delete(val);
+        render();
+      });
+    });
+
+    document.querySelectorAll("[data-clear]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.clear;
+        const box = document.getElementById("slicer-" + (key === "category" ? "category" : key));
+        const checked = [...box.querySelectorAll("input")].filter((i) => i.checked).length;
+        const allOn = checked === box.querySelectorAll("input").length;
+        box.querySelectorAll("input").forEach((input) => {
+          input.checked = !allOn;
+          const val = Number(input.value);
+          if (input.checked) filters[key].add(val);
+          else filters[key].delete(val);
+        });
+        render();
+      });
+    });
+
+    const yearIndex = new Map(years.map((y, i) => [y, i]));
+
+    function selected(row) {
+      const yi = yearIndex.get(row[0]);
+      return filters.year.has(yi) && filters.region.has(row[2]) && filters.category.has(row[3]);
+    }
+
+    const chartDefaults = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => inr(ctx.parsed.y ?? ctx.parsed.x),
+          },
+        },
+      },
+    };
+
+    const trendChart = new Chart(document.getElementById("chart-trend"), {
+      type: "line",
+      data: { labels: [], datasets: [{
+        label: "Revenue (INR)",
+        data: [],
+        borderColor: "#118dff",
+        backgroundColor: "rgba(17,141,255,0.12)",
+        fill: true,
+        tension: 0.25,
+        pointRadius: 3,
+      }]},
+      options: {
+        ...chartDefaults,
+        scales: {
+          x: { title: { display: true, text: "Month" }, grid: { display: false } },
+          y: { beginAtZero: true, title: { display: true, text: "Revenue (INR)" }, ticks: { callback: (v) => inr(v) } },
+        },
+      },
+    });
+
+    const categoryChart = new Chart(document.getElementById("chart-category"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Revenue (INR)", data: [], backgroundColor: "#118dff" }]},
+      options: {
+        ...chartDefaults,
+        scales: {
+          x: { title: { display: true, text: "Category" }, ticks: { maxRotation: 40 }, grid: { display: false } },
+          y: { beginAtZero: true, title: { display: true, text: "Revenue (INR)" }, ticks: { callback: (v) => inr(v) } },
+        },
+      },
+    });
+
+    const regionChart = new Chart(document.getElementById("chart-region"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Profit (INR)", data: [], backgroundColor: "#107c10" }]},
+      options: {
+        ...chartDefaults,
+        indexAxis: "y",
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => inr(ctx.parsed.x) } },
+        },
+        scales: {
+          x: { beginAtZero: true, title: { display: true, text: "Profit (INR)" }, ticks: { callback: (v) => inr(v) } },
+          y: { title: { display: true, text: "Region" }, grid: { display: false } },
+        },
+      },
+    });
+
+    const productChart = new Chart(document.getElementById("chart-products"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Revenue (INR)", data: [], backgroundColor: "#002050" }]},
+      options: {
+        ...chartDefaults,
+        indexAxis: "y",
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => inr(ctx.parsed.x) } },
+        },
+        scales: {
+          x: { beginAtZero: true, title: { display: true, text: "Revenue (INR)" }, ticks: { callback: (v) => inr(v) } },
+          y: { title: { display: true, text: "Product" }, grid: { display: false } },
+        },
+      },
+    });
+
+    function render() {
+      let revenue = 0, profit = 0, orders = 0;
+      const customers = new Set();
+      const monthly = {};
+      const byCat = new Array(D.categories.length).fill(0);
+      const byReg = new Array(D.regions.length).fill(0);
+      const byProd = {};
+
+      for (const row of D.rows) {
+        if (!selected(row)) continue;
+        const [year, month, ri, ci, pi, cid, sales, pr] = row;
+        revenue += sales;
+        profit += pr;
+        orders += 1;
+        customers.add(cid);
+        const key = year + "-" + String(month).padStart(2, "0");
+        monthly[key] = (monthly[key] || 0) + sales;
+        byCat[ci] += sales;
+        byReg[ri] += pr;
+        byProd[pi] = (byProd[pi] || 0) + sales;
+      }
+
+      document.getElementById("kpi-revenue").textContent = inr(revenue);
+      document.getElementById("kpi-profit").textContent = inr(profit);
+      document.getElementById("kpi-orders").textContent = countFmt(orders);
+      document.getElementById("kpi-customers").textContent = countFmt(customers.size);
+      const margin = revenue ? (profit / revenue) * 100 : 0;
+      document.getElementById("kpi-revenue-hint").textContent = "Filtered sales amount";
+      document.getElementById("kpi-profit-hint").textContent = "Margin " + margin.toFixed(1) + "%";
+      document.getElementById("kpi-orders-hint").textContent = "Line items in filter";
+      document.getElementById("kpi-customers-hint").textContent = "Distinct customer_id";
+
+      const monthKeys = Object.keys(monthly).sort();
+      trendChart.data.labels = monthKeys.map((k) => {
+        const [y, m] = k.split("-");
+        return MONTHS[Number(m) - 1] + " " + y.slice(2);
+      });
+      trendChart.data.datasets[0].data = monthKeys.map((k) => monthly[k]);
+      trendChart.update();
+
+      const catPairs = D.categories.map((name, i) => [name, byCat[i]]).filter((p) => p[1] > 0);
+      categoryChart.data.labels = catPairs.map((p) => p[0]);
+      categoryChart.data.datasets[0].data = catPairs.map((p) => p[1]);
+      categoryChart.update();
+
+      const regPairs = D.regions.map((name, i) => [name, byReg[i]])
+        .filter((p) => p[1] !== 0)
+        .sort((a, b) => b[1] - a[1]);
+      regionChart.data.labels = regPairs.map((p) => p[0]);
+      regionChart.data.datasets[0].data = regPairs.map((p) => p[1]);
+      regionChart.update();
+
+      const top = Object.entries(byProd)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      productChart.data.labels = top.map(([i]) => D.products[i]);
+      productChart.data.datasets[0].data = top.map(([, v]) => v);
+      productChart.update();
+
+      document.getElementById("footer").textContent =
+        D.meta.included.toLocaleString("en-IN") + " orders loaded · " +
+        D.meta.excluded + " excluded (returns / invalid dates) · " + D.meta.source;
+    }
+
+    render();
+  </script>
+</body>
+</html>
